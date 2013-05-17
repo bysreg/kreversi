@@ -25,6 +25,8 @@
 #include <kdebug.h>
 
 #include "Engine.h"
+#include <iostream>
+using namespace std;
 
 KReversiGame::KReversiGame()
     : m_curPlayer(Black), m_playerColor(Black), m_computerColor( White )
@@ -63,7 +65,7 @@ void KReversiGame::makePlayerMove( int row, int col, bool demoMode )
 
     if( !isMovePossible(move) )
     {
-        kDebug() << "No move possible";
+        kDebug() << "No move possible. Stupid";
         return;
     }
     //kDebug() << "Black (player) play ("<<move.row<<","<<move.col<<")";

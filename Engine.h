@@ -129,6 +129,7 @@
 #include <QVector>
 #include <krandomsequence.h>
 #include "commondefs.h"
+#include "ai.h"
 
 class KReversiGame;
 

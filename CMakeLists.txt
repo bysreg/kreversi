@@ -1,5 +1,7 @@
 project(kreversi)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
+
 if(NOT COMPILING_KDEGAMES)
 	find_package(KDE4 REQUIRED)
 	include(KDE4Defaults)
@@ -16,7 +18,9 @@ add_subdirectory( sounds )
 add_subdirectory( icons ) 
 add_subdirectory( doc )
 
-include_directories( ${CMAKE_SOURCE_DIR}/libkdegames/highscore)
+find_package(Lua52 REQUIRED)
+
+include_directories( ${CMAKE_SOURCE_DIR}/libkdegames/highscore ${LUA_INCLUDE_DIR} )
 
 ########### next target ###############
 
@@ -34,8 +38,8 @@ kde4_add_kcfg_files(kreversi_SRCS preferences.kcfgc)
 
 kde4_add_app_icon(kreversi_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/icons/hi*-app-kreversi.png")
 kde4_add_executable(kreversi ${kreversi_SRCS})
-
-target_link_libraries(kreversi ${KDE4_KDEUI_LIBS} kdegames)
+message("lua library : " ${LUA_LIBRARIES})
+target_link_libraries(kreversi ${KDE4_KDEUI_LIBS} kdegames ${LUA_LIBRARIES})
 install(TARGETS kreversi  ${INSTALL_TARGETS_DEFAULT_ARGS} )
 
 ########### install files ###############

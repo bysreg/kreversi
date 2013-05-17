@@ -31,6 +31,14 @@
 #include "highscores.h"
 #include "mainwindow.h"
 
+#include <lua.hpp>
+#include <lua.h>
+#include <luaconf.h>
+#include <lauxlib.h>
+#include <lualib.h>
+
+using namespace std;
+
 static const char description[] = I18N_NOOP("KDE Reversi Board Game");
 
 int main(int argc, char **argv)

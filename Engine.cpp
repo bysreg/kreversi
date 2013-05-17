@@ -259,6 +259,7 @@ Engine::Engine(int st, int sd)/* : SuperEngine(st, sd) */
   m_bc_score = new Score;
   SetupBcBoard();
   SetupBits();
+  kDebug() << "create new engine : 1";
 }
 
 
@@ -270,6 +271,7 @@ Engine::Engine(int st) //: SuperEngine(st)
   m_bc_score = new Score;
   SetupBcBoard();
   SetupBits();
+  kDebug() << "create new engine : 2";
 }
 
 
@@ -281,6 +283,7 @@ Engine::Engine()// : SuperEngine(1)
   m_bc_score = new Score;
   SetupBcBoard();
   SetupBits();
+  kDebug() << "create new engine : 3";
 }
 
 Engine::~Engine()
@@ -300,6 +303,9 @@ void Engine::yield()
 
 KReversiPos Engine::computeMove(const KReversiGame& game, bool competitive)
 {
+    kDebug() << "----------AI is Thinking-------------------------";
+    kDebug() << "There are : " << game.possibleMoves().size() << " moves";
+
     if( m_computingMove )
     {
         kDebug() << "I'm already computing move! Yours KReversi Engine.";
@@ -470,13 +476,18 @@ KReversiPos Engine::computeMove(const KReversiGame& game, bool competitive)
   }
 
   m_computingMove = false;
-  // Return a suitable move.
-  if (interrupted())
+  // Return a suitable move.  
+  if (interrupted()) {
+    kDebug() << "computer computing move : INTERRUPTED";
     return KReversiPos(NoColor, -1, -1);
-  else if (maxval != -LARGEINT)
+  }else if (maxval != -LARGEINT){
+    kDebug() << "computer computing move : " << max_y-1 << " " << max_x-1;
     return KReversiPos(color, max_y-1, max_x-1);
-  else
+  }else{
+    kDebug() << "computer computing move : NO MOVE";
     return KReversiPos(NoColor, -1, -1);
+  }
+  kDebug() << "#############################################";
 }
 
 
@@ -485,6 +496,7 @@ KReversiPos Engine::computeMove(const KReversiGame& game, bool competitive)
 
 KReversiPos Engine::ComputeFirstMove(const KReversiGame& game)
 {
+  kDebug() << "compute first move called";
   int    r;
   ChipColor  color = game.currentPlayer();
 
