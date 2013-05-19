@@ -32,13 +32,13 @@ set(kreversi_SRCS
     Engine.cpp
     highscores.cpp
     mainwindow.cpp
+    ai.cpp
     main.cpp )
 
 kde4_add_kcfg_files(kreversi_SRCS preferences.kcfgc)
 
 kde4_add_app_icon(kreversi_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/icons/hi*-app-kreversi.png")
 kde4_add_executable(kreversi ${kreversi_SRCS})
-message("lua library : " ${LUA_LIBRARIES})
 target_link_libraries(kreversi ${KDE4_KDEUI_LIBS} kdegames ${LUA_LIBRARIES})
 install(TARGETS kreversi  ${INSTALL_TARGETS_DEFAULT_ARGS} )
 
@@ -46,4 +46,4 @@ install(TARGETS kreversi  ${INSTALL_TARGETS_DEFAULT_ARGS} )
 
 install( PROGRAMS kreversi.desktop  DESTINATION  ${XDG_APPS_INSTALL_DIR} )
 #install( FILES kreversi.kcfg  DESTINATION  ${KCFG_INSTALL_DIR} )
-install( FILES kreversiui.rc  DESTINATION  ${DATA_INSTALL_DIR}/kreversi )
+install( FILES kreversiui.rc ai.lua ai_profiles.lua DESTINATION  ${DATA_INSTALL_DIR}/kreversi )
