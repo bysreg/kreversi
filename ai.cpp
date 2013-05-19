@@ -50,6 +50,7 @@ namespace aif{
         std::string game_state = luaL_checkstring(L, 1);
         Engine engine(game_state);
         int ret = engine.EvaluatePosition(Black);//ai evaluate function is always seen from the first player perspective which is the black player
+        //kDebug() << "eval : " << ret << " ";
         lua_pushnumber(L, ret);
         return 1;
     }

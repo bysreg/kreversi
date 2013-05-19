@@ -243,7 +243,7 @@ private:
   int      TryAllMoves(ChipColor opponent, int level, int cutoffval,
   quint64  opponentbits, quint64 colorbits);
 
-  void     SetupBcBoard();
+  static void     SetupBcBoard();
   void     SetupBits();
   int      CalcBcScore(ChipColor color);
   quint64  ComputeOccupiedBits(ChipColor color);
@@ -260,7 +260,7 @@ private:
   static int drow[];
 
   ChipColor        m_board[10][10];
-  int          m_bc_board[9][9];
+  static int    m_bc_board[9][9];
   Score*        m_score;
   Score*        m_bc_score;
   SquareStack  m_squarestack;

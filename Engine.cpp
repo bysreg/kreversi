@@ -259,6 +259,7 @@ char Engine::TIE_REP = '3';
 
 int Engine::dcol[] = { 0, 1, 0, -1, 1, 1, -1, -1 };
 int Engine::drow[] = { -1, 0, 1, 0, -1, 1, -1, 1 };
+int Engine::m_bc_board[9][9];
 
 Engine::Engine(int st, int sd)/* : SuperEngine(st, sd) */
     : m_strength(st), m_computingMove( false )
@@ -292,6 +293,7 @@ Engine::Engine()// : SuperEngine(1)
   SetupBits();
 }
 
+//customized for lua ai implementation
 Engine::Engine(std::string game_state)
     : m_strength(1), m_computingMove(false)
 {
@@ -316,6 +318,51 @@ Engine::Engine(std::string game_state)
 
   //get turn
   m_turn = char2ChipColor(game_state[64]);
+
+  // Initialize m_bc_score to the current bc score.  This is kept
+  // up-to-date incrementally so that way we won't have to calculate
+  // it from scratch for each evaluation.
+  m_bc_score->set(White, CalcBcScore(White));
+  m_bc_score->set(Black, CalcBcScore(Black));
+
+  int    score_black    = 0;
+  int    score_white = 0;
+
+  for(int i=1;i<=8;i++) {
+      for(int j=1;j<=8;j++) {
+          if(m_board[i][j] == Black)
+              score_black++;
+          else if(m_board[i][j] == White)
+              score_white++;
+      }
+  }
+
+  // Figure out the current score
+  m_score->set(White, score_white);
+  m_score->set(Black, score_black);
+
+  // Get the search depth.  If we are close to the end of the game,
+  // the number of possible moves goes down, so we can search deeper
+  // without using more time.
+  m_depth = m_strength;
+  if (m_score->score(White) + m_score->score(Black) + m_depth + 3 >= 64) // 3 chips away from end game
+    m_depth = 64 - m_score->score(White) - m_score->score(Black);
+  else if (m_score->score(White) + m_score->score(Black) + m_depth + 4 >= 64) // 4 chips away from end game
+    m_depth += 2;
+  else if (m_score->score(White) + m_score->score(Black) + m_depth + 5 >= 64) // 5 chips away from end game
+    m_depth++;
+
+  // The evaluation is a linear combination of the score (number of
+  // pieces) and the sum of the scores for the squares (given by
+  // m_bc_score).  The earlier in the game, the more we use the square
+  // values and the later in the game the more we use the number of
+  // pieces.
+  m_coeff = 100 - (100 * (m_score->score(White) + m_score->score(Black)+ m_depth - 4)) / 60;
+
+  // If we are very close to the end, we can even make the search
+  // exhaustive.
+  if (m_score->score(White) + m_score->score(Black) + m_depth >= 64)
+    m_exhaustive = true;
 }
 
 Engine::~Engine()
@@ -523,7 +570,6 @@ void Engine::yield()
 
 
 // Calculate the best move from the current position, and return it.
-
 KReversiPos Engine::computeMove(const KReversiGame& game, bool competitive)
 {
     // Initialize the board that we use for the search.
@@ -537,10 +583,11 @@ KReversiPos Engine::computeMove(const KReversiGame& game, bool competitive)
     }
 
     m_turn = game.currentPlayer();
+
     kDebug() << "----------AI"<< game.currentPlayer() <<" is Thinking-------------------------";
 
     return game.getAi(game.currentPlayer())->selectMove(*this);
-
+    // ###################################################################################
     kDebug() << "There are : " << game.possibleMoves().size() << " moves";
 
     if( m_computingMove )
@@ -765,7 +812,7 @@ int Engine::ComputeMove2(int xplay, int yplay, ChipColor color, int level,
 {
   int               number_of_turned = 0;
   SquareStackEntry  mse;
-  ChipColor             opponent = opponentColorFor(color);
+  ChipColor                 opponent = opponentColorFor(color);
 
   m_nodes_searched++;
 
@@ -943,7 +990,6 @@ int Engine::EvaluatePosition(ChipColor color)
   return retval;
 }
 
-
 // Calculate bitmaps for each square, and also for neighbors of each
 // square.
 //
@@ -984,6 +1030,10 @@ void Engine::SetupBits()
 void Engine::SetupBcBoard()
 {
   // JAVA m_bc_board = new int[9][9];
+
+    //test if we should setup the bc board again
+    if(m_bc_board[7][8] == -1)
+        return;
 
   for (int i=1; i < 9; i++)
     for (int j=1; j < 9; j++) {
