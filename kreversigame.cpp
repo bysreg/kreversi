@@ -25,12 +25,14 @@
 #include <kdebug.h>
 
 #include "Engine.h"
-#include <iostream>
-using namespace std;
 
 KReversiGame::KReversiGame()
     : m_curPlayer(Black), m_playerColor(Black), m_computerColor( White )
 {
+    kDebug() << "ctor kReversiGame";        
+    ai[0] = new Ai("my_ai_1");
+    ai[1] = new Ai("my_ai_2");
+
     // reset board
     for(int r=0; r<8; ++r)
         for(int c=0; c<8; ++c)
@@ -41,12 +43,22 @@ KReversiGame::KReversiGame()
 
     m_score[White] = m_score[Black] = 2;
 
-    m_engine = new Engine(1);
+    m_engine = new Engine(1);    
 }
 
 KReversiGame::~KReversiGame()
 {
+    delete ai[0];
+    delete ai[1];
     delete m_engine;
+}
+
+Ai* KReversiGame::getAi(ChipColor color) const
+{
+    if(color == Black)
+        return ai[0];
+    else
+        return ai[1];
 }
 
 void KReversiGame::makePlayerMove( int row, int col, bool demoMode )

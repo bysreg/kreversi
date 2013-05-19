@@ -27,6 +27,7 @@
 #include <QStack>
 
 #include "commondefs.h"
+#include "ai.h"
 
 class Engine;
 
@@ -49,6 +50,10 @@ class KReversiGame : public QObject
 public:
     KReversiGame();
     ~KReversiGame();
+
+    //added
+    Ai* getAi(ChipColor color) const;
+
     /**
      *  Starts next player turn.
      *  If game isn't over yet, then this function does the following:
@@ -154,6 +159,7 @@ signals:
     void computerCantMove();
     void playerCantMove();
 private:
+    Ai* ai[2];
     enum Direction { Up, Down, Right, Left, UpLeft, UpRight, DownLeft, DownRight };
     /**
      * This function will tell you if the move is possible.

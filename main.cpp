@@ -37,8 +37,6 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-using namespace std;
-
 static const char description[] = I18N_NOOP("KDE Reversi Board Game");
 
 int main(int argc, char **argv)
@@ -73,7 +71,7 @@ int main(int argc, char **argv)
     {
         KCmdLineArgs *args = KCmdLineArgs::parsedArgs();
         KReversiMainWindow *mainWin = new KReversiMainWindow( 0, args->isSet( "demo" ) );
-	args->clear();
+        args->clear();
         mainWin->show();
     }
 
