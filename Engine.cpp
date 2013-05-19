@@ -84,6 +84,9 @@
 // when moves are made on the board. Every piece that is put on the board
 // or turned is saved in the stack m_squarestack (see class SquareStack) so
 // every move can easily be reversed after the search in a node is completed.
+// Engine m_board uses index 1 til 8. But KReversiGame board uses index 0 til 7.
+// So ComputeMove will return move with index 0 til 7. But other than that,
+// Engine will always consider move starting with index 1
 //
 // The member m_bc_board[][] holds board control values for each square
 // and is initiated by a call to the function private void SetupBcBoard()
@@ -249,7 +252,13 @@ private:
 static const int LARGEINT      = 99999;
 static const int ILLEGAL_VALUE = 8888888;
 static const int BC_WEIGHT     = 3;
+char Engine::DARK_REP = '0';
+char Engine::LIGHT_REP = '1';
+char Engine::NONE_REP = '2';
+char Engine::TIE_REP = '3';
 
+int Engine::dcol[] = { 0, 1, 0, -1, 1, 1, -1, -1 };
+int Engine::drow[] = { -1, 0, 1, 0, -1, 1, -1, 1 };
 
 Engine::Engine(int st, int sd)/* : SuperEngine(st, sd) */
     : m_strength(st), m_computingMove( false )
@@ -259,7 +268,6 @@ Engine::Engine(int st, int sd)/* : SuperEngine(st, sd) */
   m_bc_score = new Score;
   SetupBcBoard();
   SetupBits();
-  kDebug() << "create new engine : 1";
 }
 
 
@@ -271,7 +279,6 @@ Engine::Engine(int st) //: SuperEngine(st)
   m_bc_score = new Score;
   SetupBcBoard();
   SetupBits();
-  kDebug() << "create new engine : 2";
 }
 
 
@@ -283,13 +290,229 @@ Engine::Engine()// : SuperEngine(1)
   m_bc_score = new Score;
   SetupBcBoard();
   SetupBits();
-  kDebug() << "create new engine : 3";
+}
+
+Engine::Engine(std::string game_state)
+    : m_strength(1), m_computingMove(false)
+{
+  m_random.setSeed(0);
+  m_score = new Score;
+  m_bc_score = new Score;
+  SetupBcBoard();
+  SetupBits();
+
+  int count = 0;
+  // Initialize the board with game_state
+  for (uint x = 0; x < 10; x++) {
+    for (uint y = 0; y < 10; y++) {
+      if (1 <= x && x <= 8 && 1 <= y && y <= 8) {
+        m_board[x][y] = char2ChipColor(game_state[count]);
+        count++;
+      }else{
+        m_board[x][y] = NoColor;
+      }
+    }
+  }
+
+  //get turn
+  m_turn = char2ChipColor(game_state[64]);
 }
 
 Engine::~Engine()
 {
     delete m_score;
     delete m_bc_score;
+}
+
+std::string Engine::getGameStateString() const {
+    std::string ret;
+
+    for(int i=1;i<=8;i++) {
+        for(int j=1;j<=8;j++) {
+            if(m_board[i][j] == Black) {                
+                ret.push_back(DARK_REP);
+            }else if(m_board[i][j] == White) {
+                ret.push_back(LIGHT_REP);
+            }else{
+                ret.push_back(NONE_REP);
+            }
+        }
+    }
+    ret.push_back(chipColor2Char(m_turn));
+
+    return ret;
+}
+
+//row based on engine board representation which is 1 until 8
+bool Engine::isLegalMove(int row, int col) const {
+    return isLegalMove(m_turn, row, col);
+}
+
+bool Engine::isLegalMove(ChipColor turn, int row, int col) const {
+    if(row < 1 || col < 1 || row > 8 || col > 8)
+        return false;
+    if(m_board[row][col] != NoColor)
+        return false;
+
+    for(int i=0;i<8;i++) {
+        int check_row = row + drow[i];
+        int check_col = col + dcol[i];
+        int num_flipped = 0;
+
+        while (true) {
+            if (check_row < 1 || check_col < 1 || check_row > 8 || check_col > 8)
+                break;
+            if (m_board[check_row][check_col] == NoColor)
+                break;
+            if (m_board[check_row][check_col] == turn && num_flipped == 0)
+                break;
+            if (m_board[check_row][check_col] == turn)
+                return true;
+            num_flipped++;
+            check_row += drow[i];
+            check_col += dcol[i];
+        }
+    }
+
+    return false;
+}
+
+// return number of legal moves
+int Engine::getNumberOfMoves() {
+    return getNumberOfMoves(m_turn);
+}
+
+int Engine::getNumberOfMoves(ChipColor turn)
+{
+    int count = 0;
+
+    for (int i = 1; i <= 8; i++) {
+        for (int j = 1; j <= 8; j++) {
+            if (isLegalMove(turn, i, j))
+                count++;
+        }
+    }
+
+    return count;
+}
+
+PosList Engine::getAllMoves() const {
+    PosList points;
+    for (int i = 1; i <= 8; i++) {
+        for (int j = 1; j <= 8; j++) {
+            if (isLegalMove(i, j))
+                points.push_back(KReversiPos(m_turn, i, j));
+        }
+    }
+
+    if(points.size() == 0)
+        points.push_back(KReversiPos(NoColor,-1, -1)); //langkah pass
+
+    return points;
+}
+
+bool Engine::putPiece(int row, int col) {
+    if(row == -1 && col == -1 && getNumberOfMoves() == 0) {
+        //move -1, -1 means that this player wants to pass(can only be done if that player doesnt have any other move)
+        nextTurn();
+        return true;
+    }
+
+    if (!isLegalMove(row, col))
+        return false;
+
+    m_board[row][col] = m_turn;
+    flipPiece(row, col);
+    nextTurn();
+    return true;
+}
+
+ChipColor Engine::getTurn()
+{
+    return m_turn;
+}
+
+void Engine::nextTurn() {
+    if(m_turn == White)
+        m_turn = Black;
+    else
+        m_turn = White;
+}
+
+void Engine::flipPiece(int row, int col) {
+    ChipColor new_piece = m_board[row][col];
+    for (int i = 1; i <= 8; i++) {
+        int check_row = row + drow[i-1];
+        int check_col = col + dcol[i-1];
+        int num_flipped = 0;
+
+        while (true) {
+            if (check_row < 0 || check_col < 0 || check_row >= 8 || check_col >= 8)
+                break;
+            if (m_board[check_row][check_col] == NoColor)
+                break;
+            if (m_board[check_row][check_col] == new_piece && num_flipped == 0)
+                break;
+            if (m_board[check_row][check_col] == new_piece) {
+                for (int j = 0; j < num_flipped; j++) {
+                    check_row -= drow[i-1];
+                    check_col -= dcol[i-1];
+                    m_board[check_row][check_col] = new_piece;
+                }
+                break;
+            }
+            num_flipped++;
+            check_row += drow[i-1];
+            check_col += dcol[i-1];
+        }
+    }
+}
+
+ChipColor Engine::char2ChipColor(char c) {
+    if(c == Engine::DARK_REP)
+        return Black;
+    else if(c == Engine::LIGHT_REP)
+        return White;
+    else
+        return NoColor;
+}
+
+char Engine::chipColor2Char(ChipColor chip_color) {
+    if(chip_color == Black)
+        return Engine::DARK_REP;
+    else if(chip_color == White)
+        return Engine::LIGHT_REP;
+    else
+        return Engine::NONE_REP;
+}
+
+// The player with the most pieces on the board at the end of the game wins
+// State.DARK dark wins, State.LIGHT light wins, State.TIE tie,
+// state.NONE nobody wins yet(game hasnt finished yet)
+int Engine::whoWin()
+{
+    if (getNumberOfMoves(Black) != 0 || getNumberOfMoves(White) != 0) {
+        return NONE_REP; // nobody wins yet
+    }
+
+    int dark_pieces = 0;
+    int light_pieces = 0;
+
+    for (int i = 1; i <= 8; i++) {
+        for (int j = 1; j <= 8; j++) {
+            if (m_board[i][j] == Black)
+                dark_pieces++;
+            else if (m_board[i][j] == White)
+                light_pieces++;
+        }
+    }
+
+    if (dark_pieces > light_pieces)
+        return DARK_REP;
+    else if (dark_pieces < light_pieces)
+        return LIGHT_REP;
+    else
+        return TIE_REP;
 }
 
 // keep GUI alive
@@ -303,7 +526,21 @@ void Engine::yield()
 
 KReversiPos Engine::computeMove(const KReversiGame& game, bool competitive)
 {
-    kDebug() << "----------AI is Thinking-------------------------";
+    // Initialize the board that we use for the search.
+    for (uint row = 0; row < 10; row++) {
+      for (uint col = 0; col < 10; col++) {
+        if (1 <= row && row <= 8 && 1 <= col && col <= 8)
+            m_board[row][col] = game.chipColorAt(row-1, col-1);
+        else
+            m_board[row][col] = NoColor;
+      }
+    }
+
+    m_turn = game.currentPlayer();
+    kDebug() << "----------AI"<< game.currentPlayer() <<" is Thinking-------------------------";
+
+    return game.getAi(game.currentPlayer())->selectMove(*this);
+
     kDebug() << "There are : " << game.possibleMoves().size() << " moves";
 
     if( m_computingMove )
@@ -380,10 +617,10 @@ KReversiPos Engine::computeMove(const KReversiGame& game, bool competitive)
   for (uint x = 0; x < 10; x++)
     for (uint y = 0; y < 10; y++) {
       if (1 <= x && x <= 8
-	  && 1 <= y && y <= 8)
-	m_board[x][y] = game.chipColorAt(y-1, x-1);
+      && 1 <= y && y <= 8)
+    m_board[x][y] = game.chipColorAt(y-1, x-1);
       else
-	m_board[x][y] = NoColor;
+    m_board[x][y] = NoColor;
     }
 
   // Initialize a lot of stuff that we will use in the search.
@@ -478,16 +715,15 @@ KReversiPos Engine::computeMove(const KReversiGame& game, bool competitive)
   m_computingMove = false;
   // Return a suitable move.  
   if (interrupted()) {
-    kDebug() << "computer computing move : INTERRUPTED";
+    kDebug() << "computer computing move : INTERRUPTED";    
     return KReversiPos(NoColor, -1, -1);
   }else if (maxval != -LARGEINT){
-    kDebug() << "computer computing move : " << max_y-1 << " " << max_x-1;
+    kDebug() << "computer computing move : " << max_y-1 << " " << max_x-1;    
     return KReversiPos(color, max_y-1, max_x-1);
   }else{
-    kDebug() << "computer computing move : NO MOVE";
+    kDebug() << "computer computing move : NO MOVE";    
     return KReversiPos(NoColor, -1, -1);
-  }
-  kDebug() << "#############################################";
+  }  
 }
 
 
@@ -639,7 +875,6 @@ int Engine::ComputeMove2(int xplay, int yplay, ChipColor color, int level,
     return retval;
 }
 
-
 // Generate all legal moves from the current position, and do a search
 // to see the value of them.  This function returns the value of the
 // most valuable move, but not the move itself.
@@ -658,16 +893,15 @@ int Engine::TryAllMoves(ChipColor opponent, int level, int cutoffval,
 
   for (int x = 1; x < 9; x++) {
     for (int y = 1; y < 9; y++) {
-      if (m_board[x][y] == NoColor
-	  && (m_neighbor_bits[x][y] & colorbits) != null_bits) {
-	int val = ComputeMove2(x, y, opponent, level+1, maxval, opponentbits,
+      if (m_board[x][y] == NoColor && (m_neighbor_bits[x][y] & colorbits) != null_bits) {
+        int val = ComputeMove2(x, y, opponent, level+1, maxval, opponentbits,
 			       colorbits);
 
-	if (val != ILLEGAL_VALUE && val > maxval) {
-	  maxval = val;
-	  if (maxval > -cutoffval || interrupted())
-	    break;
-	}
+        if (val != ILLEGAL_VALUE && val > maxval) {
+            maxval = val;
+            if (maxval > -cutoffval || interrupted())
+                break;
+        }
       }
     }
 
@@ -746,8 +980,7 @@ void Engine::SetupBits()
 
 // Set up the board control values that will be used in evaluation of
 // the position.
-//
-
+// static
 void Engine::SetupBcBoard()
 {
   // JAVA m_bc_board = new int[9][9];
@@ -779,7 +1012,7 @@ void Engine::SetupBcBoard()
 }
 
 
-// Calculate the board control score.
+// Calculate the board control .
 //
 
 int Engine::CalcBcScore(ChipColor color)

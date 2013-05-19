@@ -334,7 +334,7 @@ function createProfile(profile_path, profile_name)
 	return profile_table[profile_name]
 end
 
-function exec(profile, game_state)
+function exec(profile, game_state)        
 	return func_table[profile.type](game_state, profile)
 end
 

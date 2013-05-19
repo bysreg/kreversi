@@ -128,12 +128,13 @@
 //#include <sys/times.h>
 #include <QVector>
 #include <krandomsequence.h>
+#include <string>
 #include "commondefs.h"
 #include "ai.h"
 
 class KReversiGame;
 
-static ChipColor opponentColorFor(ChipColor color)
+static inline ChipColor opponentColorFor(ChipColor color)
 {
     if(color == NoColor)
         return color;
@@ -198,11 +199,31 @@ class Score;
 //
 class Engine {
 public:
+  static char DARK_REP;
+  static char LIGHT_REP;
+  static char NONE_REP;
+  static char TIE_REP;
+
+public:
   Engine(int st, int sd);
   Engine(int st);
+  Engine(std::string game_state);
   Engine();
 
   ~Engine();
+
+  //added
+  std::string getGameStateString() const;
+  bool isLegalMove(int row, int col) const;
+  bool isLegalMove(ChipColor turn, int row, int col) const;
+  int getNumberOfMoves();
+  int getNumberOfMoves(ChipColor turn);
+  PosList getAllMoves() const;
+  bool putPiece(int row, int col);
+  ChipColor getTurn();
+  static ChipColor char2ChipColor(char c);
+  static char chipColor2Char(ChipColor chip_color);
+  int whoWin();
 
   KReversiPos     computeMove(const KReversiGame& game, bool competitive);
   bool isThinking() const { return m_computingMove; }
@@ -212,6 +233,7 @@ public:
 
   void  setStrength(uint strength) { m_strength = strength; }
   uint  strength() const { return m_strength; }
+  int      EvaluatePosition(ChipColor color);
 private:
   KReversiPos     ComputeFirstMove(const KReversiGame& game);
   int      ComputeMove2(int xplay, int yplay, ChipColor color, int level,
@@ -221,7 +243,6 @@ private:
   int      TryAllMoves(ChipColor opponent, int level, int cutoffval,
   quint64  opponentbits, quint64 colorbits);
 
-  int      EvaluatePosition(ChipColor color);
   void     SetupBcBoard();
   void     SetupBits();
   int      CalcBcScore(ChipColor color);
@@ -229,7 +250,14 @@ private:
 
   void yield();
 
+  //added
+  void nextTurn();
+  void flipPiece(int row, int col);
+
 private:
+
+  static int dcol[];
+  static int drow[];
 
   ChipColor        m_board[10][10];
   int          m_bc_board[9][9];
@@ -242,6 +270,7 @@ private:
   int          m_nodes_searched;
   bool         m_exhaustive;
   bool         m_competitive;
+  ChipColor    m_turn; // only to be used when Engine object constructed with Engine(string) ctor
 
   uint             m_strength;
   KRandomSequence  m_random;
