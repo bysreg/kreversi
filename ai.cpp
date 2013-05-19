@@ -8,7 +8,7 @@ namespace aif{
     int getNumberOfMoves(lua_State *L) {
         std::string game_state = luaL_checkstring(L, 1);
         Engine engine(game_state);
-        lua_pushinteger(L, engine.getNumberOfMoves());
+        lua_pushinteger(L, engine.getNumberOfMovesWithPass());
         return 1;
     }
 

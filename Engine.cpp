@@ -122,6 +122,7 @@
 #include "kreversigame.h"
 #include <QApplication>
 #include <KDebug>
+#include <cmath>
 
 // ================================================================
 //           Classes SquareStackEntry and SquareStack
@@ -429,6 +430,10 @@ int Engine::getNumberOfMoves() {
     return getNumberOfMoves(m_turn);
 }
 
+int Engine::getNumberOfMovesWithPass() {
+    return std::max(getNumberOfMoves(), 1);
+}
+
 int Engine::getNumberOfMoves(ChipColor turn)
 {
     int count = 0;
@@ -453,7 +458,7 @@ PosList Engine::getAllMoves() const {
     }
 
     if(points.size() == 0)
-        points.push_back(KReversiPos(NoColor,-1, -1)); //langkah pass
+        points.push_back(KReversiPos(NoColor,-1, -1)); //move pass
 
     return points;
 }

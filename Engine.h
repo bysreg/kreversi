@@ -234,6 +234,7 @@ public:
   void  setStrength(uint strength) { m_strength = strength; }
   uint  strength() const { return m_strength; }
   int      EvaluatePosition(ChipColor color);
+  int getNumberOfMovesWithPass();
 private:
   KReversiPos     ComputeFirstMove(const KReversiGame& game);
   int      ComputeMove2(int xplay, int yplay, ChipColor color, int level,
